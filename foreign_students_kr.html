@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대한민국 외국인 유학생 연도별 현황 (법무부_46)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background:#fafafa; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 10px 0 6px; font-size: 22px; }
+    .meta { color:#555; font-size: 13px; margin-bottom: 16px; }
+    .panel { background:#fff; border:1px solid #eee; border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; }
+    label { font-size: 13px; color:#333; }
+    select, input[type="file"] { padding:6px 8px; font-size: 13px; }
+    canvas { width:100%; max-height: 520px; }
+    .note { font-size:12px; color:#666; margin-top:12px; }
+    .src a { color:#0a58ca; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>대한민국 외국인 유학생 연도별 현황</h1>
+    <div class="meta">체류자격별(D-2, D-4-1, D-4-7) 연도별 추이 — 법무부_46 데이터</div>
+
+    <div class="panel">
+      <div class="controls">
+        <label>CSV 파일 선택:
+          <input id="fileInput" type="file" accept=".csv" />
+        </label>
+        <label>차트 유형:
+          <select id="chartType">
+            <option value="line">연도별 선 그래프</option>
+            <option value="bar">연도별 누적 막대</option>
+            <option value="stacked">연도별 누적 막대(체류자격)</option>
+          </select>
+        </label>
+        <label>체류자격 필터:
+          <select id="visaFilter" multiple size="3" style="min-width:160px"></select>
+        </label>
+      </div>
+      <canvas id="chart"></canvas>
+      <div class="note src">출처: <a href="https://www.data.go.kr/data/15100038/fileData.do" target="_blank" rel="noopener">공공데이터포털 - 법무부_46(외국인 유학생) 연도별 외국인 유학생 체류 현황</a></div>
+      <div class="note">CSV 컬럼 예시: 년, 구분(체류자격), 외국인 유학생 수</div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const chartTypeSel = document.getElementById('chartType');
+    const visaFilterSel = document.getElementById('visaFilter');
+    const ctx = document.getElementById('chart').getContext('2d');
+
+    let originalRows = [];
+    let currentChart = null;
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          originalRows = sanitizeRows(results.data);
+          buildVisaOptions(originalRows);
+          render();
+        },
+        error: (err) => alert('CSV 파싱 오류: ' + err)
+      });
+    });
+
+    chartTypeSel.addEventListener('change', render);
+    visaFilterSel.addEventListener('change', render);
+
+    function sanitizeRows(rows) {
+      // Column names in portal appear as: 년, 구분, 외국인 유학생 수
+      return rows.map(r => {
+        const year = parseInt((r['년']||r['연도']||r['year']||'').toString().trim(), 10);
+        const visa = (r['구분']||r['체류자격']||r['visa']||'').toString().trim();
+        const count = parseInt((r['외국인 유학생 수']||r['value']||r['count']||'0').toString().replace(/[, ]+/g,''), 10);
+        return { year, visa, count: isNaN(count)?0:count };
+      }).filter(d => !isNaN(d.year) && d.visa);
+    }
+
+    function buildVisaOptions(rows) {
+      const visas = Array.from(new Set(rows.map(d => d.visa))).sort();
+      visaFilterSel.innerHTML = '';
+      visas.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v; opt.selected = true; // default select all
+        visaFilterSel.appendChild(opt);
+      });
+    }
+
+    function getSelectedVisas() {
+      return Array.from(visaFilterSel.selectedOptions).map(o => o.value);
+    }
+
+    function aggregate(rows, selectedVisas) {
+      const filtered = rows.filter(d => selectedVisas.includes(d.visa));
+      const years = Array.from(new Set(filtered.map(d => d.year))).sort((a,b)=>a-b);
+
+      // total by year
+      const totalByYear = new Map(years.map(y => [y, 0]));
+      filtered.forEach(d => totalByYear.set(d.year, totalByYear.get(d.year) + d.count));
+
+      // per-visa by year
+      const visas = Array.from(new Set(filtered.map(d => d.visa))).sort();
+      const perVisa = visas.map(v => {
+        const data = years.map(y => {
+          const found = filtered.find(d => d.year===y && d.visa===v);
+          return found ? found.count : 0;
+        });
+        return { label: v, data };
+      });
+
+      return { years, total: years.map(y => totalByYear.get(y)), perVisa };
+    }
+
+    function makeColors(n) {
+      const base = [
+        '#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd',
+        '#8c564b','#e377c2','#7f7f7f','#bcbd22','#17becf'
+      ];
+      const colors = [];
+      for (let i=0;i<n;i++) colors.push(base[i%base.length]);
+      return colors;
+    }
+
+    function render() {
+      if (!originalRows.length) return;
+      const selectedVisas = getSelectedVisas();
+      const mode = chartTypeSel.value;
+      const { years, total, perVisa } = aggregate(originalRows, selectedVisas);
+
+      if (currentChart) { currentChart.destroy(); }
+
+      if (mode === 'line') {
+        currentChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: years,
+            datasets: [{
+              label: '총 유학생 수',
+              data: total,
+              borderColor: '#1f77b4',
+              backgroundColor: 'rgba(31,119,180,0.15)',
+              tension: 0.1,
+              pointRadius: 3
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: { x: { title: { display:true, text:'연도' } }, y: { beginAtZero:true, title:{ display:true, text:'명' } } },
+            plugins: { legend: { display: true } }
+          }
+        });
+      } else if (mode === 'bar') {
+        currentChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: years,
+            datasets: [{
+              label: '총 유학생 수',
+              data: total,
+              backgroundColor: 'rgba(31,119,180,0.55)'
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: { x: { stacked: false }, y: { beginAtZero:true, stacked:false, title:{ display:true, text:'명' } } },
+            plugins: { legend: { display: true } }
+          }
+        });
+      } else {
+        const colors = makeColors(perVisa.length);
+        currentChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: years,
+            datasets: perVisa.map((s, i) => ({
+              label: s.label,
+              data: s.data,
+              backgroundColor: colors[i]
+            }))
+          },
+          options: {
+            responsive: true,
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero:true, title:{ display:true, text:'명' } } },
+            plugins: { legend: { position: 'top' } }
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
