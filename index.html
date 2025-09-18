@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visualization - 법무부 유학생관리정보 데이터</title>
+    <meta name="description" content="Interactive visualization for Ministry of Justice international student management data" />
+    <link rel="stylesheet" href="./styles.css" />
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>법무부 유학생관리정보 데이터 – Data Visualization</h1>
+      <p class="subtitle">Nguồn: 공공데이터포털 · <a href="https://www.data.go.kr/data/3069982/fileData.do" target="_blank" rel="noopener noreferrer">data.go.kr</a></p>
+    </header>
+
+    <main class="container">
+      <section class="controls">
+        <div class="control-group">
+          <label for="dataSource">Nguồn dữ liệu</label>
+          <select id="dataSource">
+            <option value="data/sample.csv">data/sample.csv (demo)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="filterGender">Giới tính</label>
+          <select id="filterGender">
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="filterVisa">Thể loại visa</label>
+          <select id="filterVisa">
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="searchSchool">Trường</label>
+          <input id="searchSchool" type="search" placeholder="Nhập tên trường..." />
+        </div>
+        <div class="control-group right">
+          <button id="reloadBtn">Tải lại</button>
+        </div>
+      </section>
+
+      <section class="charts">
+        <div class="chart-card">
+          <h3>Top Quốc tịch</h3>
+          <canvas id="chartByNationality"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Tỷ lệ giới tính</h3>
+          <canvas id="chartByGender"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Quốc tịch theo loại visa (Stacked)</h3>
+          <canvas id="chartStackedVisa"></canvas>
+        </div>
+      </section>
+
+      <section class="table-section">
+        <div class="table-header">
+          <h3>Bảng dữ liệu</h3>
+          <div class="table-actions">
+            <button id="downloadFiltered">Tải CSV (lọc)</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>Giới tính</th>
+                <th>Quốc tịch</th>
+                <th>Visa</th>
+                <th>Trường</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>© 2025 Visualization demo. Dữ liệu: 공공데이터포털</span>
+    </footer>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+  </html>
+
+
