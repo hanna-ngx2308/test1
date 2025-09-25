@@ -3,95 +3,95 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Du học sinh theo quốc gia (KR, 2024) — Interactive Viz</title>
+  <title>Biểu đồ tròn du học sinh 2024</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background:#fafafa; color:#333; }
+    body { font-family: Arial, sans-serif; margin:0; background:#fafafa; color:#333; }
     header { padding:20px; background:#004477; color:#fff; }
-    .container { max-width: 1100px; margin:0 auto; padding:20px; }
-    h1 { margin:0; font-size:20px; }
+    .container { max-width: 900px; margin:0 auto; padding:20px; }
+    h1 { margin:0; font-size:22px; }
     .panel { background:#fff; border:1px solid #ddd; border-radius:10px; padding:20px; margin-top:20px; }
     canvas { max-height:520px; }
-    .controls { margin-top:15px; }
-    textarea, select, input { width:100%; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:6px; }
-    button { margin-top:10px; padding:8px 12px; border:none; border-radius:6px; cursor:pointer; background:#004477; color:#fff; }
-    button:hover { background:#0066aa; }
+    #legend span{display:inline-flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:999px;padding:4px 8px;margin:4px;font-size:13px}
+    #legend .dot{width:10px;height:10px;border-radius:50%}
   </style>
 </head>
 <body>
   <header>
-    <h1>2024 — Du học sinh tại Hàn theo quốc gia (Interactive)</h1>
+    <h1>2024년 주요 국가별 외국인 유학생 현황</h1>
   </header>
 
   <div class="container">
     <div class="panel">
-      <label for="chartType">Dạng biểu đồ</label>
-      <select id="chartType">
-        <option value="doughnut">Doughnut</option>
-        <option value="pie">Pie</option>
-        <option value="bar">Bar (ngang)</option>
-      </select>
-
-      <label for="titleInput">Tiêu đề</label>
-      <input id="titleInput" type="text" placeholder="Nhập tiêu đề..." />
-
-      <button id="loadBtn">Nạp dữ liệu từ data.json</button>
-    </div>
-
-    <div class="panel">
-      <h2 id="chartTitle">2024년 주요 국가별 외국인 유학생 현황</h2>
       <canvas id="chart"></canvas>
+      <div id="legend"></div>
     </div>
   </div>
 
   <script>
-  let DATA = [];
+  const COLORS = ['#f4b400','#1b6ddc','#b7d5ff','#ff4da6','#0f2b5f','#30c1cb','#9aa0aa'];
+  let DATA=[];
   let chart;
 
   async function loadData(){
-    try{
-      const res = await fetch('data.json');
-      const json = await res.json();
-      DATA = json;
-      draw();
-    }catch(e){
-      alert('Không thể tải data.json: '+e.message);
-    }
+    const res = await fetch('data.json', {cache:'no-store'});
+    const json = await res.json();
+    DATA = json.map((d,i)=>({
+      label:d.label, value:+d.value, color:d.color||COLORS[i%COLORS.length]
+    }));
+    draw(); buildLegend();
   }
 
-  function colorsFrom(data){
-    const palette = ['#f4b400','#1b6ddc','#b7d5ff','#ff4da6','#0f2b5f','#30c1cb','#9aa0aa'];
-    return data.map((d,i)=> d.color || palette[i%palette.length]);
+  function total(){return DATA.reduce((a,b)=>a+(b.value||0),0)}
+  function percents(){
+    const t=total(); return DATA.map(d=>t? +(d.value*100/t).toFixed(1):0);
   }
 
-  function makeConfig(type){
-    const labels = DATA.map(d=>d.label);
-    const values = DATA.map(d=>d.value);
-    const colors = colorsFrom(DATA);
-    const isBar = type === 'bar';
-    return {
-      type: isBar ? 'bar' : type,
-      data: { labels, datasets:[{ data: values, backgroundColor: colors }] },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ display:!isBar } },
-        scales: isBar ? { x:{beginAtZero:true} } : {}
-      }
+  const PercentLabels = {
+    id:'percentLabels',
+    afterDatasetDraw(chart,args){
+      const {ctx} = chart;
+      ctx.save();
+      ctx.font='bold 13px Arial';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      const t=total();
+      args.meta.data.forEach((el,i)=>{
+        const v=DATA[i].value;
+        if(v<=0) return;
+        const p=(v*100/t);
+        if(p<1.5) return;
+        const pos=el.tooltipPosition();
+        const label=p.toFixed(1)+'%';
+        ctx.fillStyle='#000';
+        ctx.fillText(label,pos.x,pos.y);
+      });
+      ctx.restore();
     }
-  }
+  };
 
   function draw(){
-    const ctx = document.getElementById('chart');
-    if(chart){ chart.destroy(); }
-    chart = new Chart(ctx, makeConfig(document.getElementById('chartType').value));
+    const ctx=document.getElementById('chart');
+    if(chart) chart.destroy();
+    chart=new Chart(ctx,{
+      type:'pie',
+      data:{
+        labels:DATA.map(d=>d.label),
+        datasets:[{data:DATA.map(d=>d.value),backgroundColor:DATA.map(d=>d.color)}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>{
+        const p=percents()[ctx.dataIndex];
+        return `${ctx.label}: ${ctx.parsed} (${p}%)`;
+      }}}}},
+      plugins:[PercentLabels]
+    });
   }
 
-  document.getElementById('loadBtn').addEventListener('click', loadData);
-  document.getElementById('chartType').addEventListener('change', draw);
-  document.getElementById('titleInput').addEventListener('input', e=>{
-    document.getElementById('chartTitle').textContent = e.target.value || '2024년 주요 국가별 외국인 유학생 현황';
-  });
+  function buildLegend(){
+    const legend=document.getElementById('legend');
+    const pct=percents();
+    legend.innerHTML=DATA.map((d,i)=>`
+      <span><span class="dot" style="background:${d.color}"></span>${d.label}: <strong>${pct[i]}%</strong></span>`).join('');
+  }
 
   loadData();
   </script>
