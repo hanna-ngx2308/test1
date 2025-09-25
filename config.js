@@ -1,9 +1,7 @@
 [
-  { "label": "Trung Quốc", "value": 34.5 },
-  { "label": "Việt Nam", "value": 26.8 },
-  { "label": "Mông Cổ", "value": 5.9 },
-  { "label": "Uzbekistan", "value": 5.8 },
-  { "label": "Nepal", "value": 2.9 },
-  { "label": "Myanmar", "value": 2.7 },
-  { "label": "Khác", "value": 21.4 }
+  { "label": "Undergraduate", "value": 93624, "color": "#4da3ff" },
+  { "label": "Master's", "value": 33860, "color": "#7dd3fc" },
+  { "label": "Doctorate", "value": 18294, "color": "#60a5fa" },
+  { "label": "Korean Language Program", "value": 48924, "color": "#a78bfa" },
+  { "label": "Others/Exchange/Training", "value": 114260, "color": "#fbbf24" }
 ]
