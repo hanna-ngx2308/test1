@@ -1,108 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KR 2024 — International Students by Program Type</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KR International Students 2024 — Visualization</title>
+  <meta name="description" content="Interactive visualizations (Pie, Donut, Bar) for international students in Korea, 2024." />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <style>
-    body { margin:0; font-family: Arial, sans-serif; background:#fafafa; color:#333; }
-    header { padding:20px; background:#004477; color:#fff; }
-    h1 { margin:0; font-size:20px; }
-    .container { max-width:1200px; margin:0 auto; padding:20px; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:20px; }
-    .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px; }
-    h2 { font-size:16px; margin:0 0 10px; }
-    canvas { max-height:420px; }
-    .legend { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
-    .pill { display:inline-flex; align-items:center; gap:6px; border:1px solid #ccc;
-            border-radius:999px; padding:4px 8px; font-size:12px; }
-    .dot { width:10px; height:10px; border-radius:50%; }
-    .toolbar { margin:15px 0; }
-    button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer;
-             background:#004477; color:#fff; }
-    button:hover { background:#0066aa; }
+    :root {
+      --bg: #0b0c0f;
+      --panel: #12141a;
+      --text: #e5e7eb;
+      --muted: #a1a1aa;
+      --accent: #60a5fa;
+      --border: #22242b;
+    }
+    [data-theme="light"] {
+      --bg: #f7f7fb;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #4b5563;
+      --accent: #2563eb;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      margin: 16px 0 22px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.12);
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      outline: none;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.08));
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .kbd {
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.05);
+      padding: 0 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media(min-width: 900px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+    footer {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .notice {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
   </style>
 </head>
-<body>
-  <header>
-    <h1>KR 2024 — International Students by Program Type</h1>
-    <div>Data loaded from <code>data.json</code></div>
-  </header>
-
+<body data-theme="dark">
   <div class="container">
-    <div class="toolbar">
-      <button id="reloadBtn">Reload data.json</button>
-      <button id="toggleModeBtn">Labels: <span id="modeText">Percent</span></button>
+    <header>
+      <h1>KR International Students (2024)</h1>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="themeToggle" class="btn" title="Toggle theme">Toggle Theme</button>
+        <a class="btn" href="KR_International_Students_2024.json" download>Download JSON</a>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="controls">
+        <div style="grid-column: span 3;">
+          <label for="metric">Metric</label>
+          <select id="metric">
+            <option value="Students_2024">Students (Count)</option>
+            <option value="Percentage">Percentage (%)</option>
+          </select>
+        </div>
+        <div style="grid-column: span 3;">
+          <label for="sort">Sort</label>
+          <select id="sort">
+            <option value="desc">High → Low</option>
+            <option value="asc">Low → High</option>
+            <option value="alpha">A → Z</option>
+          </select>
+        </div>
+        <div style="grid-column: span 3;">
+          <label for="topN">Top N (leave blank = all)</label>
+          <input id="topN" type="number" min="1" placeholder="e.g. 10"/>
+        </div>
+        <div style="grid-column: span 3;">
+          <label for="search">Filter by country</label>
+          <input id="search" type="text" placeholder="Type to filter..."/>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap: wrap;">
+        <button id="apply" class="btn">Apply</button>
+        <span class="notice">Data source: <span class="kbd">KR_International_Students_2024.json</span> (keep this file in the same folder).</span>
+      </div>
     </div>
+
     <div class="grid">
-      <div class="card"><h2>Pie</h2><canvas id="pie"></canvas><div id="legendPie" class="legend"></div></div>
-      <div class="card"><h2>Doughnut</h2><canvas id="doughnut"></canvas><div id="legendDoughnut" class="legend"></div></div>
-      <div class="card"><h2>Horizontal Bar</h2><canvas id="bar"></canvas><div id="legendBar" class="legend"></div></div>
-      <div class="card"><h2>Polar Area</h2><canvas id="polar"></canvas><div id="legendPolar" class="legend"></div></div>
+      <div class="card">
+        <h3 style="margin:4px 0 10px;">Pie Chart</h3>
+        <canvas id="pieChart" height="280"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin:4px 0 10px;">Donut Chart</h3>
+        <canvas id="donutChart" height="280"></canvas>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <h3 style="margin:4px 0 10px;">Bar Chart</h3>
+        <canvas id="barChart" height="340"></canvas>
+      </div>
     </div>
+
+    <footer>
+      Built with Chart.js. Edit the JSON to update charts &mdash; no code changes needed.
+    </footer>
   </div>
 
-<script>
-const COLORS = ['#4da3ff','#7dd3fc','#60a5fa','#a78bfa','#fbbf24','#34d399','#f472b6','#f97316'];
-let DATA = [];
-let MODE_PERCENT = true;
-const charts = {};
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    // === Configuration ===
+    const DATA_URL = "KR_International_Students_2024.json"; // keep the JSON file in the same folder
+    const state = {
+      raw: [],
+      filtered: [],
+      charts: { pie: null, donut: null, bar: null }
+    };
 
-async function loadData(){
-  const res = await fetch('data.json', {cache:'no-store'});
-  const json = await res.json();
-  DATA = json.map((d,i)=>({ label:d.label, value:+d.value, color:d.color||COLORS[i%COLORS.length] }));
-}
-function total(){ return DATA.reduce((a,b)=>a+(b.value||0),0); }
-function percents(){ const t=total(); return DATA.map(d=>t? +(d.value*100/t).toFixed(1):0); }
+    // Generate a pleasant color palette dynamically
+    function generateColors(n) {
+      const colors = [];
+      const goldenRatio = 0.618033988749895;
+      let hue = 0.21; // start hue
+      for (let i = 0; i < n; i++) {
+        hue += goldenRatio;
+        hue %= 1;
+        const h = Math.floor(hue * 360);
+        const s = 65;
+        const l = 55;
+        colors.push(`hsl(${h} ${s}% ${l}%)`);
+      }
+      return colors;
+    }
 
-const ArcLabels = {
-  id:'arcLabels',
-  afterDatasetDraw(chart,args){
-    const type=chart.config.type; if(type!=='pie'&&type!=='doughnut') return;
-    const {ctx}=chart; ctx.save(); ctx.font='bold 13px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    const pct=percents();
-    args.meta.data.forEach((el,i)=>{
-      const v=DATA[i].value, p=pct[i]; if(v<=0) return; if(MODE_PERCENT&&p<1.5) return;
-      const pos=el.tooltipPosition();
-      const label=MODE_PERCENT? (p.toFixed(1)+'%'): v.toLocaleString('en-US');
-      ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=3.5; ctx.strokeText(label,pos.x,pos.y);
-      ctx.fillStyle='#000'; ctx.fillText(label,pos.x,pos.y);
+    function sortData(data, metric, sort) {
+      const arr = [...data];
+      if (sort === "alpha") {
+        arr.sort((a, b) => String(a.Country).localeCompare(String(b.Country)));
+      } else if (sort === "asc") {
+        arr.sort((a, b) => Number(a[metric]) - Number(b[metric]));
+      } else {
+        arr.sort((a, b) => Number(b[metric]) - Number(a[metric]));
+      }
+      return arr;
+    }
+
+    function filterData(query, data) {
+      if (!query) return data;
+      const q = query.trim().toLowerCase();
+      return data.filter(d => String(d.Country).toLowerCase().includes(q));
+    }
+
+    function limitData(topN, data) {
+      if (!topN || isNaN(topN) || topN <= 0) return data;
+      return data.slice(0, topN);
+    }
+
+    function buildDataset(data, metric) {
+      const labels = data.map(d => d.Country);
+      const values = data.map(d => Number(d[metric]));
+      const colors = generateColors(data.length);
+      return { labels, values, colors };
+    }
+
+    function makePie(ctx, labels, values, colors, cutout = 0) {
+      return new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderColor: "rgba(0,0,0,0.1)",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "right" },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const dataset = ctx.dataset;
+                  const total = dataset.data.reduce((a, b) => a + b, 0);
+                  const val = dataset.data[ctx.dataIndex];
+                  const pct = total ? (val / total) * 100 : 0;
+                  return `${ctx.label}: ${val.toLocaleString()} (${pct.toFixed(1)}%)`;
+                }
+              }
+            }
+          },
+          cutout
+        }
+      });
+    }
+
+    function makeBar(ctx, labels, values, colors) {
+      return new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Value",
+            data: values,
+            backgroundColor: colors,
+            borderColor: "rgba(0,0,0,0.1)",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              grid: { color: getComputedStyle(document.body).getPropertyValue('--border') }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: getComputedStyle(document.body).getPropertyValue('--border') }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.raw.toLocaleString()}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateCharts() {
+      const metric = document.getElementById("metric").value;
+      const sort = document.getElementById("sort").value;
+      const topN = Number(document.getElementById("topN").value);
+      const query = document.getElementById("search").value;
+
+      const sorted = sortData(state.raw, metric, sort);
+      const filtered = filterData(query, sorted);
+      const limited = limitData(topN, filtered);
+      state.filtered = limited;
+
+      const { labels, values, colors } = buildDataset(limited, metric);
+
+      // Destroy existing charts to avoid memory leaks
+      for (const key of Object.keys(state.charts)) {
+        if (state.charts[key]) {
+          state.charts[key].destroy();
+          state.charts[key] = null;
+        }
+      }
+
+      // Create charts
+      const pieCtx = document.getElementById("pieChart").getContext("2d");
+      const donutCtx = document.getElementById("donutChart").getContext("2d");
+      const barCtx = document.getElementById("barChart").getContext("2d");
+
+      state.charts.pie = makePie(pieCtx, labels, values, colors, 0);
+      state.charts.donut = makePie(donutCtx, labels, values, colors, "55%");
+      state.charts.bar = makeBar(barCtx, labels, values, colors);
+    }
+
+    async function loadData() {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) {
+        throw new Error("Failed to load JSON. Ensure the file is in the same folder and named " + DATA_URL);
+      }
+      const json = await res.json();
+      // Normalize keys just in case
+      state.raw = json.map(d => ({
+        Country: d.Country ?? d.country ?? d.label ?? "Unknown",
+        Students_2024: Number(d.Students_2024 ?? d.value ?? d.count ?? 0),
+        Percentage: Number(d.Percentage ?? d.percent ?? d.percentage ?? 0)
+      }));
+      updateCharts();
+    }
+
+    document.getElementById("apply").addEventListener("click", updateCharts);
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      const root = document.body;
+      const isDark = root.getAttribute("data-theme") !== "light";
+      root.setAttribute("data-theme", isDark ? "light" : "dark");
+      // Re-render to apply grid color changes
+      updateCharts();
     });
-    ctx.restore();
-  }
-};
 
-function makeDataset(){
-  return { labels:DATA.map(d=>d.label),
-           datasets:[{ data:DATA.map(d=>d.value), backgroundColor:DATA.map(d=>d.color) }] };
-}
-function tooltipLabel(ctx){
-  const v=ctx.parsed, p=percents()[ctx.dataIndex];
-  return `${ctx.label}: ${v.toLocaleString('en-US')} (${p}%)`;
-}
-function renderLegend(id){
-  const el=document.getElementById(id), p=percents();
-  el.innerHTML=DATA.map((d,i)=>
-    `<span class="pill"><span class="dot" style="background:${d.color}"></span>${d.label}: <strong>${MODE_PERCENT? p[i]+'%': d.value.toLocaleString('en-US')}</strong></span>`).join('');
-}
-function drawAll(){
-  Object.values(charts).forEach(c=>c?.destroy());
-  charts.pie=new Chart(document.getElementById('pie'),{type:'pie',data:makeDataset(),options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}}},plugins:[ArcLabels]});
-  renderLegend('legendPie');
-  charts.doughnut=new Chart(document.getElementById('doughnut'),{type:'doughnut',data:makeDataset(),options:{cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}}},plugins:[ArcLabels]});
-  renderLegend('legendDoughnut');
-  charts.bar=new Chart(document.getElementById('bar'),{type:'bar',data:makeDataset(),options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}},scales:{x:{beginAtZero:true}}}});
-  renderLegend('legendBar');
-  charts.polar=new Chart(document.getElementById('polar'),{type:'polarArea',data:makeDataset(),options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}}}});
-  renderLegend('legendPolar');
-}
-
-document.getElementById('reloadBtn').addEventListener('click',async()=>{await loadData();drawAll();});
-document.getElementById('toggleModeBtn').addEventListener('click',()=>{MODE_PERCENT=!MODE_PERCENT;document.getElementById('modeText').textContent=MODE_PERCENT?'Percent':'Count';drawAll();});
-
-(async()=>{await loadData();drawAll();})();
-</script>
+    // Init
+    loadData().catch(err => {
+      console.error(err);
+      alert(err.message);
+    });
+  </script>
 </body>
 </html>
