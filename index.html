@@ -5,84 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KR 2024 — International Students by Program Type</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    <style>
-  /* Ẩn mượt, không giật */
-  .hidden-editor {
-    display: none !important;
-  }
-</style>
-
-<script>
-  // Đợi DOM sẵn sàng
-  document.addEventListener('DOMContentLoaded', () => {
-    // 1) Ẩn khối có tiêu đề "Enter Data ..."
-    // Tìm phần tử chứa text "Enter Data"
-    const allEls = Array.from(document.querySelectorAll('body *'));
-    const enterDataEl = allEls.find(el =>
-      el.childElementCount === 0 && /Enter Data/i.test(el.textContent || '')
-    );
-
-    if (enterDataEl) {
-      // Tìm container gần nhất để ẩn (ưu tiên section/form/div)
-      const container = enterDataEl.closest('section, form, div') || enterDataEl.parentElement;
-      if (container) container.classList.add('hidden-editor');
-    }
-
-    // 2) Ẩn các nút thao tác dữ liệu (Apply / Reset / Load from data.json)
-    const hideByText = (selector, texts) => {
-      Array.from(document.querySelectorAll(selector)).forEach(btn => {
-        const t = (btn.textContent || '').trim().toLowerCase();
-        if (texts.some(x => t.includes(x))) btn.classList.add('hidden-editor');
-      });
-    };
-
-    hideByText('button, a, input[type="button"], input[type="submit"]', [
-      'apply data',
-      'reset to 2024 sample',
-      'load from data.json'
-    ]);
-
-    // Nếu phần nhập liệu là <textarea>/<input> nằm ngoài, ẩn nốt:
-    ['textarea', 'input[type="text"]'].forEach(sel => {
-      Array.from(document.querySelectorAll(sel)).forEach(el => {
-        // heuristics: nếu gần tiêu đề "Enter Data", ẩn luôn
-        const isNearEnterData =
-          enterDataEl &&
-          (el.closest('section, form, div') === enterDataEl.closest('section, form, div'));
-        if (isNearEnterData) el.classList.add('hidden-editor');
-      });
-    });
-  });
-</script>
-
     :root{--bg:#0b0c0f;--panel:#111317;--ink:#e7e9ee;--muted:#9aa0aa;--ring:rgba(77,163,255,.35)}
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,#0b0c0f,#0b0c0f 60%,#0e1116);color:var(--ink)}
     header{padding:28px 20px 10px;display:flex;flex-wrap:wrap;align-items:end;gap:16px;max-width:1100px;margin:0 auto}
     h1{margin:0;font-size:20px;font-weight:700}
     .subtitle{color:var(--muted);font-size:13px}
-    .wrap{max-width:1100px;margin:0 auto;padding:14px 20px 40px;display:grid;grid-template-columns:320px 1fr;gap:16px}
-    @media (max-width:960px){.wrap{grid-template-columns:1fr}}
-    .panel{background:var(--panel);border:1px solid #1b1f2a;border-radius:14px}
+    .wrap{max-width:1100px;margin:0 auto;padding:14px 20px 40px}
+    .panel{background:var(--panel);border:1px solid #1b1f2a;border-radius:14px;margin-bottom:20px}
     .panel .inner{padding:16px}
-    label{font-size:12px;color:var(--muted)}
-    select, input[type="text"], textarea{width:100%;background:#0e121a;color:var(--ink);border:1px solid #1c2432;border-radius:10px;padding:10px 12px;outline:none}
-    select:focus, input:focus, textarea:focus{border-color:#4da3ff;box-shadow:0 0 0 3px var(--ring)}
-    textarea{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace}
-    .row{display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:12px}
-    .btns{display:flex;flex-wrap:wrap;gap:8px}
-    button{background:#0f1724;border:1px solid #1c2432;color:#e7e9ee;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer}
-    button:hover{border-color:#2a3446}
-    .btn-primary{background:linear-gradient(180deg,#2a74ff,#1c5be6);border:none}
     .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
     .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #1c2432;background:#0e121a;border-radius:999px;padding:6px 10px;font-size:12px;color:#cfd3db}
     .dot{width:10px;height:10px;border-radius:50%}
     .viz{min-height:420px;display:flex;align-items:center;justify-content:center}
     canvas{max-height:520px}
     footer{max-width:1100px;margin:22px auto 60px;color:var(--muted);font-size:12px;padding:0 20px}
-    .kbd{font-family:ui-monospace,monospace;border:1px solid #222a38;background:#0e121a;border-radius:6px;padding:1px 6px}
     a{color:#9ecbff}
   </style>
 </head>
@@ -90,44 +28,11 @@
   <header>
     <div>
       <h1>KR 2024 — International Students by Program Type</h1>
-      <div class="subtitle">Source: <a href="https://www.studyinkorea.go.kr/it/why/koreaStatistics.do" target="_blank">StudyInKorea/KEDI</a> • Import JSON/CSV or load from <code>data.json</code></div>
+      <div class="subtitle">Source: <a href="https://www.studyinkorea.go.kr/it/why/koreaStatistics.do" target="_blank">StudyInKorea/KEDI</a> • Data loaded from <code>data.json</code></div>
     </div>
   </header>
 
   <main class="wrap">
-    <section class="panel">
-      <div class="inner">
-        <div class="row">
-          <label for="chartType">Chart Type</label>
-          <select id="chartType">
-            <option value="pie">Pie</option>
-            <option value="doughnut">Doughnut</option>
-            <option value="bar">Bar (horizontal)</option>
-          </select>
-        </div>
-        <div class="row">
-          <label for="titleInput">Title</label>
-          <input id="titleInput" type="text" placeholder="Enter chart title..." />
-        </div>
-        <div class="row">
-          <label>Enter Data (JSON Array or CSV: label,value,color?)</label>
-          <textarea id="dataInput" placeholder='Example JSON:\n[
-  {"label":"Undergraduate","value":93624},
-  {"label":"Master's","value":33860},
-  {"label":"Doctorate","value":18294},
-  {"label":"Korean Language Program","value":48924},
-  {"label":"Others/Exchange/Training","value":114260}
-]'></textarea>
-          <div class="btns">
-            <button class="btn-primary" id="applyBtn">Apply Data</button>
-            <button id="resetBtn">Reset to 2024 Sample</button>
-            <button id="loadJsonBtn">Load from data.json</button>
-          </div>
-        </div>
-        <div id="summary" class="subtitle">—</div>
-      </div>
-    </section>
-
     <section class="panel">
       <div class="inner">
         <h2 id="chartTitle">KR 2024 — International Students by Program Type</h2>
@@ -138,150 +43,79 @@
   </main>
 
   <footer>
-    Tips: Paste JSON/CSV → “Apply Data” • Press <span class="kbd">R</span> to reset sample • <span class="kbd">L</span> to load <code>data.json</code>.
+    This chart automatically loads data from <code>data.json</code>.
   </footer>
 
 <script>
-// ===== SAMPLE DATA =====
-const SAMPLE = [
-  { label: 'Undergraduate', value: 93624, color:'#4da3ff' },
-  { label: "Master's", value: 33860, color:'#7dd3fc' },
-  { label: 'Doctorate', value: 18294, color:'#60a5fa' },
-  { label: 'Korean Language Program', value: 48924, color:'#a78bfa' },
-  { label: 'Others/Exchange/Training', value: 114260, color:'#fbbf24' }
-];
-
-const palette = ['#6aa9ff','#fcbf49','#90be6d','#e76f51','#577590','#f94144'];
-
-const el = {
-  chartType: document.getElementById('chartType'),
-  titleInput: document.getElementById('titleInput'),
-  dataInput: document.getElementById('dataInput'),
-  applyBtn: document.getElementById('applyBtn'),
-  resetBtn: document.getElementById('resetBtn'),
-  loadJsonBtn: document.getElementById('loadJsonBtn'),
-  chartTitle: document.getElementById('chartTitle'),
-  legend: document.getElementById('legend'),
-  summary: document.getElementById('summary')
-};
-
-let DATA = [...SAMPLE];
+const COLORS = ['#4da3ff','#7dd3fc','#60a5fa','#a78bfa','#fbbf24'];
+let DATA=[];
 let chart;
 
-function sanitize(data){
-  return (data||[]).map((d,i)=>({
-    label: String(d.label||'').trim(),
-    value: Number(d.value||d.count||0),
-    color: d.color || palette[i%palette.length]
-  })).filter(d=>d.label && Number.isFinite(d.value));
+async function loadData(){
+  try{
+    const res = await fetch('data.json', {cache:'no-store'});
+    const json = await res.json();
+    DATA = json.map((d,i)=>({
+      label:d.label, value:+d.value, color:d.color||COLORS[i%COLORS.length]
+    }));
+    draw(); buildLegend();
+  }catch(e){
+    alert('Cannot load data.json: '+e.message);
+  }
 }
 
-function sum(){ return DATA.reduce((a,b)=>a+(b.value||0),0); }
-function pctArr(){ const t=sum(); return DATA.map(d=> t? +(d.value*100/t).toFixed(1):0); }
+function total(){return DATA.reduce((a,b)=>a+(b.value||0),0)}
+function percents(){
+  const t=total(); return DATA.map(d=>t? +(d.value*100/t).toFixed(1):0);
+}
 
 const PercentLabels = {
   id:'percentLabels',
   afterDatasetDraw(chart,args){
-    const type = chart.config.type;
-    if(type!=='pie' && type!=='doughnut') return;
     const {ctx} = chart;
-    ctx.save(); ctx.font='bold 13px system-ui,Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    const t=sum();
+    ctx.save();
+    ctx.font='bold 13px Arial';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const t=total();
     args.meta.data.forEach((el,i)=>{
-      const v=DATA[i].value; if(v<=0) return; const p=v*100/t; if(p<1.5) return;
+      const v=DATA[i].value;
+      if(v<=0) return;
+      const p=(v*100/t);
+      if(p<1.5) return;
       const pos=el.tooltipPosition();
       const label=p.toFixed(1)+'%';
       ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=3.5; ctx.strokeText(label,pos.x,pos.y);
-      ctx.fillStyle='#111'; ctx.fillText(label,pos.x,pos.y);
+      ctx.fillStyle='#000'; ctx.fillText(label,pos.x,pos.y);
     });
     ctx.restore();
   }
 };
 
-function makeConfig(){
-  const type = el.chartType.value;
-  const labels = DATA.map(d=>d.label);
-  const values = DATA.map(d=>d.value);
-  const colors = DATA.map(d=>d.color);
-  const isBar = type==='bar';
-  return {
-    type,
-    data:{ labels, datasets:[{ data: values, backgroundColor: colors, borderWidth: isBar?0:0 }] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:!isBar }, tooltip:{ callbacks:{ label:(ctx)=>{
-        const p=pctArr()[ctx.dataIndex];
-        return `${ctx.label}: ${ctx.parsed.toLocaleString('en-US')} (${p}%)`;
-      }}} },
-      scales: isBar ? { x:{ beginAtZero:true, grid:{color:'#1c2432'} }, y:{ grid:{color:'#1c2432'} } } : {},
-      cutout: type==='doughnut' ? '55%' : undefined
-    },
-    plugins:[PercentLabels]
-  }
-}
-
 function draw(){
-  const ctx = document.getElementById('chart');
+  const ctx=document.getElementById('chart');
   if(chart) chart.destroy();
-  chart = new Chart(ctx, makeConfig());
-  renderLegend();
-  renderSummary();
+  chart=new Chart(ctx,{
+    type:'pie',
+    data:{
+      labels:DATA.map(d=>d.label),
+      datasets:[{data:DATA.map(d=>d.value),backgroundColor:DATA.map(d=>d.color)}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>{
+      const p=percents()[ctx.dataIndex];
+      return `${ctx.label}: ${ctx.parsed.toLocaleString('en-US')} (${p}%)`;
+    }}}}},
+    plugins:[PercentLabels]
+  });
 }
 
-function renderLegend(){
-  const p = pctArr();
-  el.legend.innerHTML = DATA.map((d,i)=>`<span class="pill"><span class="dot" style="background:${d.color}"></span>${d.label}: <strong>${p[i]}%</strong></span>`).join('');
+function buildLegend(){
+  const legend=document.getElementById('legend');
+  const pct=percents();
+  legend.innerHTML=DATA.map((d,i)=>`
+    <span class="pill"><span class="dot" style="background:${d.color}"></span>${d.label}: <strong>${pct[i]}%</strong></span>`).join('');
 }
 
-function renderSummary(){
-  el.summary.textContent = `Total: ${sum().toLocaleString('en-US')} students • ${pctArr().map((v,i)=>DATA[i].label+': '+v+'%').join(' · ')}`;
-}
-
-function reset(){
-  DATA = [...SAMPLE];
-  el.dataInput.value = JSON.stringify(SAMPLE, null, 2);
-  el.titleInput.value = 'KR 2024 — International Students by Program Type';
-  el.chartType.value = 'pie';
-  setTitle();
-  draw();
-}
-
-function setTitle(){
-  el.chartTitle.textContent = el.titleInput.value.trim() || 'KR 2024 — International Students by Program Type';
-}
-
-async function loadFromJson(){
-  try{
-    const res = await fetch('data.json', {cache:'no-store'});
-    const json = await res.json();
-    const cleaned = sanitize(json);
-    if(!cleaned.length) throw new Error('data.json is empty/invalid');
-    DATA = cleaned; draw();
-    el.dataInput.value = JSON.stringify(cleaned, null, 2);
-  }catch(e){ alert('Cannot load data.json: '+e.message); }
-}
-
-function applyFromTextarea(){
-  const raw = el.dataInput.value.trim(); if(!raw) return;
-  try{
-    let parsed;
-    if(raw.startsWith('[')) parsed = JSON.parse(raw);
-    else parsed = Papa.parse(raw, {skipEmptyLines:true}).data.map(r=>({label:r[0], value:r[1], color:r[2]}));
-    const cleaned = sanitize(parsed); if(!cleaned.length) throw new Error('Empty/invalid data');
-    DATA = cleaned; draw();
-  }catch(err){ alert('Cannot parse data: '+err.message); }
-}
-
-// events + hotkeys
-el.applyBtn.addEventListener('click', applyFromTextarea);
-el.resetBtn.addEventListener('click', reset);
-el.loadJsonBtn.addEventListener('click', loadFromJson);
-el.chartType.addEventListener('change', draw);
-['input','change'].forEach(ev=> el.titleInput.addEventListener(ev, setTitle));
-window.addEventListener('keydown', (e)=>{ const k=e.key.toLowerCase(); if(k==='r') reset(); if(k==='l') loadFromJson(); });
-
-// boot
-reset();
+loadData();
 </script>
 </body>
 </html>
