@@ -7,6 +7,56 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
+    <style>
+  /* Ẩn mượt, không giật */
+  .hidden-editor {
+    display: none !important;
+  }
+</style>
+
+<script>
+  // Đợi DOM sẵn sàng
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1) Ẩn khối có tiêu đề "Enter Data ..."
+    // Tìm phần tử chứa text "Enter Data"
+    const allEls = Array.from(document.querySelectorAll('body *'));
+    const enterDataEl = allEls.find(el =>
+      el.childElementCount === 0 && /Enter Data/i.test(el.textContent || '')
+    );
+
+    if (enterDataEl) {
+      // Tìm container gần nhất để ẩn (ưu tiên section/form/div)
+      const container = enterDataEl.closest('section, form, div') || enterDataEl.parentElement;
+      if (container) container.classList.add('hidden-editor');
+    }
+
+    // 2) Ẩn các nút thao tác dữ liệu (Apply / Reset / Load from data.json)
+    const hideByText = (selector, texts) => {
+      Array.from(document.querySelectorAll(selector)).forEach(btn => {
+        const t = (btn.textContent || '').trim().toLowerCase();
+        if (texts.some(x => t.includes(x))) btn.classList.add('hidden-editor');
+      });
+    };
+
+    hideByText('button, a, input[type="button"], input[type="submit"]', [
+      'apply data',
+      'reset to 2024 sample',
+      'load from data.json'
+    ]);
+
+    // Nếu phần nhập liệu là <textarea>/<input> nằm ngoài, ẩn nốt:
+    ['textarea', 'input[type="text"]'].forEach(sel => {
+      Array.from(document.querySelectorAll(sel)).forEach(el => {
+        // heuristics: nếu gần tiêu đề "Enter Data", ẩn luôn
+        const isNearEnterData =
+          enterDataEl &&
+          (el.closest('section, form, div') === enterDataEl.closest('section, form, div'));
+        if (isNearEnterData) el.classList.add('hidden-editor');
+      });
+    });
+  });
+</script>
+
     :root{--bg:#0b0c0f;--panel:#111317;--ink:#e7e9ee;--muted:#9aa0aa;--ring:rgba(77,163,255,.35)}
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,#0b0c0f,#0b0c0f 60%,#0e1116);color:var(--ink)}
