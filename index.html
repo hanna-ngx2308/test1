@@ -6,84 +6,67 @@
   <title>KR 2024 — International Students by Program Type</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    :root{--bg:#0b0c0f;--panel:#111317;--ink:#e7e9ee;--muted:#9aa0aa;--ring:rgba(77,163,255,.35)}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,#0b0c0f,#0b0c0f 60%,#0e1116);color:var(--ink)}
-    header{padding:28px 20px 10px;display:flex;flex-wrap:wrap;align-items:end;gap:16px;max-width:1100px;margin:0 auto}
-    h1{margin:0;font-size:20px;font-weight:700}
-    .subtitle{color:var(--muted);font-size:13px}
-    .wrap{max-width:1100px;margin:0 auto;padding:14px 20px 40px}
-    .panel{background:var(--panel);border:1px solid #1b1f2a;border-radius:14px;margin-bottom:20px}
-    .panel .inner{padding:16px}
-    .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #1c2432;background:#0e121a;border-radius:999px;padding:6px 10px;font-size:12px;color:#cfd3db}
-    .dot{width:10px;height:10px;border-radius:50%}
-    .viz{min-height:420px;display:flex;align-items:center;justify-content:center}
-    canvas{max-height:520px}
-    footer{max-width:1100px;margin:22px auto 60px;color:var(--muted);font-size:12px;padding:0 20px}
-    a{color:#9ecbff}
+    body { margin:0; font-family: Arial, sans-serif; background:#fafafa; color:#333; }
+    header { padding:20px; background:#004477; color:#fff; }
+    h1 { margin:0; font-size:20px; }
+    .container { max-width:1200px; margin:0 auto; padding:20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:20px; }
+    .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px; }
+    h2 { font-size:16px; margin:0 0 10px; }
+    canvas { max-height:420px; }
+    .legend { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; border:1px solid #ccc;
+            border-radius:999px; padding:4px 8px; font-size:12px; }
+    .dot { width:10px; height:10px; border-radius:50%; }
+    .toolbar { margin:15px 0; }
+    button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer;
+             background:#004477; color:#fff; }
+    button:hover { background:#0066aa; }
   </style>
 </head>
 <body>
   <header>
-    <div>
-      <h1>KR 2024 — International Students by Program Type</h1>
-      <div class="subtitle">Source: <a href="https://www.studyinkorea.go.kr/it/why/koreaStatistics.do" target="_blank">StudyInKorea/KEDI</a> • Data loaded from <code>data.json</code></div>
-    </div>
+    <h1>KR 2024 — International Students by Program Type</h1>
+    <div>Data loaded from <code>data.json</code></div>
   </header>
 
-  <main class="wrap">
-    <section class="panel">
-      <div class="inner">
-        <h2 id="chartTitle">KR 2024 — International Students by Program Type</h2>
-        <div class="viz"><canvas id="chart"></canvas></div>
-        <div id="legend" class="legend"></div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    This chart automatically loads data from <code>data.json</code>.
-  </footer>
+  <div class="container">
+    <div class="toolbar">
+      <button id="reloadBtn">Reload data.json</button>
+      <button id="toggleModeBtn">Labels: <span id="modeText">Percent</span></button>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>Pie</h2><canvas id="pie"></canvas><div id="legendPie" class="legend"></div></div>
+      <div class="card"><h2>Doughnut</h2><canvas id="doughnut"></canvas><div id="legendDoughnut" class="legend"></div></div>
+      <div class="card"><h2>Horizontal Bar</h2><canvas id="bar"></canvas><div id="legendBar" class="legend"></div></div>
+      <div class="card"><h2>Polar Area</h2><canvas id="polar"></canvas><div id="legendPolar" class="legend"></div></div>
+    </div>
+  </div>
 
 <script>
-const COLORS = ['#4da3ff','#7dd3fc','#60a5fa','#a78bfa','#fbbf24'];
-let DATA=[];
-let chart;
+const COLORS = ['#4da3ff','#7dd3fc','#60a5fa','#a78bfa','#fbbf24','#34d399','#f472b6','#f97316'];
+let DATA = [];
+let MODE_PERCENT = true;
+const charts = {};
 
 async function loadData(){
-  try{
-    const res = await fetch('data.json', {cache:'no-store'});
-    const json = await res.json();
-    DATA = json.map((d,i)=>({
-      label:d.label, value:+d.value, color:d.color||COLORS[i%COLORS.length]
-    }));
-    draw(); buildLegend();
-  }catch(e){
-    alert('Cannot load data.json: '+e.message);
-  }
+  const res = await fetch('data.json', {cache:'no-store'});
+  const json = await res.json();
+  DATA = json.map((d,i)=>({ label:d.label, value:+d.value, color:d.color||COLORS[i%COLORS.length] }));
 }
+function total(){ return DATA.reduce((a,b)=>a+(b.value||0),0); }
+function percents(){ const t=total(); return DATA.map(d=>t? +(d.value*100/t).toFixed(1):0); }
 
-function total(){return DATA.reduce((a,b)=>a+(b.value||0),0)}
-function percents(){
-  const t=total(); return DATA.map(d=>t? +(d.value*100/t).toFixed(1):0);
-}
-
-const PercentLabels = {
-  id:'percentLabels',
+const ArcLabels = {
+  id:'arcLabels',
   afterDatasetDraw(chart,args){
-    const {ctx} = chart;
-    ctx.save();
-    ctx.font='bold 13px Arial';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    const t=total();
+    const type=chart.config.type; if(type!=='pie'&&type!=='doughnut') return;
+    const {ctx}=chart; ctx.save(); ctx.font='bold 13px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    const pct=percents();
     args.meta.data.forEach((el,i)=>{
-      const v=DATA[i].value;
-      if(v<=0) return;
-      const p=(v*100/t);
-      if(p<1.5) return;
+      const v=DATA[i].value, p=pct[i]; if(v<=0) return; if(MODE_PERCENT&&p<1.5) return;
       const pos=el.tooltipPosition();
-      const label=p.toFixed(1)+'%';
+      const label=MODE_PERCENT? (p.toFixed(1)+'%'): v.toLocaleString('en-US');
       ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=3.5; ctx.strokeText(label,pos.x,pos.y);
       ctx.fillStyle='#000'; ctx.fillText(label,pos.x,pos.y);
     });
@@ -91,31 +74,35 @@ const PercentLabels = {
   }
 };
 
-function draw(){
-  const ctx=document.getElementById('chart');
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{
-    type:'pie',
-    data:{
-      labels:DATA.map(d=>d.label),
-      datasets:[{data:DATA.map(d=>d.value),backgroundColor:DATA.map(d=>d.color)}]
-    },
-    options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>{
-      const p=percents()[ctx.dataIndex];
-      return `${ctx.label}: ${ctx.parsed.toLocaleString('en-US')} (${p}%)`;
-    }}}}},
-    plugins:[PercentLabels]
-  });
+function makeDataset(){
+  return { labels:DATA.map(d=>d.label),
+           datasets:[{ data:DATA.map(d=>d.value), backgroundColor:DATA.map(d=>d.color) }] };
+}
+function tooltipLabel(ctx){
+  const v=ctx.parsed, p=percents()[ctx.dataIndex];
+  return `${ctx.label}: ${v.toLocaleString('en-US')} (${p}%)`;
+}
+function renderLegend(id){
+  const el=document.getElementById(id), p=percents();
+  el.innerHTML=DATA.map((d,i)=>
+    `<span class="pill"><span class="dot" style="background:${d.color}"></span>${d.label}: <strong>${MODE_PERCENT? p[i]+'%': d.value.toLocaleString('en-US')}</strong></span>`).join('');
+}
+function drawAll(){
+  Object.values(charts).forEach(c=>c?.destroy());
+  charts.pie=new Chart(document.getElementById('pie'),{type:'pie',data:makeDataset(),options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}}},plugins:[ArcLabels]});
+  renderLegend('legendPie');
+  charts.doughnut=new Chart(document.getElementById('doughnut'),{type:'doughnut',data:makeDataset(),options:{cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}}},plugins:[ArcLabels]});
+  renderLegend('legendDoughnut');
+  charts.bar=new Chart(document.getElementById('bar'),{type:'bar',data:makeDataset(),options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}},scales:{x:{beginAtZero:true}}}});
+  renderLegend('legendBar');
+  charts.polar=new Chart(document.getElementById('polar'),{type:'polarArea',data:makeDataset(),options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:tooltipLabel}}}}});
+  renderLegend('legendPolar');
 }
 
-function buildLegend(){
-  const legend=document.getElementById('legend');
-  const pct=percents();
-  legend.innerHTML=DATA.map((d,i)=>`
-    <span class="pill"><span class="dot" style="background:${d.color}"></span>${d.label}: <strong>${pct[i]}%</strong></span>`).join('');
-}
+document.getElementById('reloadBtn').addEventListener('click',async()=>{await loadData();drawAll();});
+document.getElementById('toggleModeBtn').addEventListener('click',()=>{MODE_PERCENT=!MODE_PERCENT;document.getElementById('modeText').textContent=MODE_PERCENT?'Percent':'Count';drawAll();});
 
-loadData();
+(async()=>{await loadData();drawAll();})();
 </script>
 </body>
 </html>
